@@ -5,11 +5,25 @@ import os
 import os.path as path
 import time
 from datetime import datetime
+import requests
 
-data_dir = '/home/hkcrawl/data'
-base_article_path = os.path.join(data_dir,"articles")
-base_meta_path = os.path.join(data_dir,"meta")
+
 batch_size = 300
+base_article_path = "./articles"
+base_meta_path = "./meta"
+
+DB_config = {
+    'host': os.environ['dbhost'],#'news-recommendation.cvynbgusgzyb.ap-northeast-2.rds.amazonaws.com',
+    'port': int(os.environ['dbport']),
+    'user':os.environ['dbusr'],
+    'password': os.environ['dbpwd'],
+    'db' : 'innodb'
+}
+
+server_config = {
+    'host': os.environ['svhost'],
+    'port': int(os.envrion['svport'])
+}
 
 with open("article_keyword_matrix.pkl", "rb") as f:
     aids = pkl.loads(f.read())
@@ -89,9 +103,11 @@ for aid in list(aids.keys()):
         input_meta[aid] = [metadata['title'], path.join(base_article_path, aid+".pkl"), metadata['score'], metadata['url'], metadata['time']]
 
 
-dbf = DBHandlerFactory("news-recommendation.cvynbgusgzyb.ap-northeast-2.rds.amazonaws.com", 3306, "master", "weonforall", "innodb").create_handler()
+dbf = DBHandlerFactory(DB_config['host'], DB_config['port'], DB_config['user'], DB_config['password'], DB_config['db']).create_handler()
 
 dbf.upload_articles(input_meta)
 dbf.upload_article_features(aids)
 dbf.upload_keywords(keywords)
 dbf.conn.close()
+
+requests.post("http://{}:{}/update".format(server_config['sv_host'], server_config['sv_port']))

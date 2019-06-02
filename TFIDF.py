@@ -78,27 +78,37 @@ with open("keyword_index.pkl", "rb") as f:
     last_st = pkl.load(f)
 
 keyword_space = {}
+inv_new = inv_map(survived_terms)
 
 x = max(survived_terms.keys())
 y = max(last_st.keys())
 max_index = max([x,y])
-inv_curkeyword = {v:k for k,v in survived_terms.items()}
 
 for k,v in last_st.items():
-    keyword_space[k] = v
     if k in survived_terms:
-        move_count += 1
-        moving = survived_terms[k]
-        inv_curkeyword[moving] = max_index+1
         max_index += 1
-    oidx = inv_curkeyword[v]
-    for ak,av in survived.items():
-        if k in av:
-            survived[ak] = [k if x==oidx else x for x in survived[ak]]
-    del inv_curkeyword[v]
+        survived_terms[max_index] = survived_terms[k]
+        for ak,av in survived.items():
+            if k in av:
+                survived[ak] = [max_index if x==k else x for x in survived[ak]]
+    keyword_space[k] = v
+    if v in inv_new:
+        old_key = inv_new[v]
+        del survived_terms[old_key]
+        del inv_new[v]
+        for ak,av in survived.items():
+            if old_key in av:
+                survived[ak] = [k if x==old_key else x for x in survived[ak]]
 
-for k,v in inv_curkeyword.items():
-    keyword_space[v] = k
+for k,v in survived_terms.items():
+    if k in keyword_space:
+        max_index += 1
+        keyword_space[max_index] = v
+        for ak,av in survived.items():
+            if k in av:
+                survived[ak] = [max_index if x==k else x for x in survived[ak]]
+    else:
+        keyword_space[k] = v
 
 with open("keyword_index.pkl", "wb") as f:
     pkl.dump(keyword_space,f)
